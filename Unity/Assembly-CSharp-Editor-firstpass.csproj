@@ -872,14 +872,14 @@
     <Reference Include="Unity.Timeline">
       <HintPath>F:\Unity_Prj\ET-Zyo\Unity\Library\ScriptAssemblies\Unity.Timeline.dll</HintPath>
     </Reference>
-    <Reference Include="Unity.Mathematics">
-      <HintPath>F:\Unity_Prj\ET-Zyo\Unity\Library\ScriptAssemblies\Unity.Mathematics.dll</HintPath>
+    <Reference Include="Unity.AI.Navigation.Editor">
+      <HintPath>F:\Unity_Prj\ET-Zyo\Unity\Library\ScriptAssemblies\Unity.AI.Navigation.Editor.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UI">
       <HintPath>F:\Unity_Prj\ET-Zyo\Unity\Library\ScriptAssemblies\UnityEngine.UI.dll</HintPath>
     </Reference>
-    <Reference Include="Unity.AI.Navigation.Editor">
-      <HintPath>F:\Unity_Prj\ET-Zyo\Unity\Library\ScriptAssemblies\Unity.AI.Navigation.Editor.dll</HintPath>
+    <Reference Include="Unity.Mathematics">
+      <HintPath>F:\Unity_Prj\ET-Zyo\Unity\Library\ScriptAssemblies\Unity.Mathematics.dll</HintPath>
     </Reference>
     <Reference Include="Unity.Multiplayer.Center.Editor">
       <HintPath>F:\Unity_Prj\ET-Zyo\Unity\Library\ScriptAssemblies\Unity.Multiplayer.Center.Editor.dll</HintPath>
