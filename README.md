@@ -1,3 +1,8 @@
+# 整合内容
+ET7.2 + UniTask + NPBahave
+
+Unity版本6.0以上
+
 # English: please use your browser to translate to english
 
 # __讨论QQ群 : 474643097__  
