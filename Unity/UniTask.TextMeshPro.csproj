@@ -46,8 +46,8 @@
     <Analyzer Include="D:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\Tools\Unity.SourceGenerators\Unity.UIToolkit.SourceGenerator.dll" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Assets\Plugins\UniTask\Runtime\External\TextMeshPro\TextMeshProAsyncExtensions.InputField.cs" />
     <Compile Include="Assets\Plugins\UniTask\Runtime\External\TextMeshPro\TextMeshProAsyncExtensions.cs" />
+    <Compile Include="Assets\Plugins\UniTask\Runtime\External\TextMeshPro\TextMeshProAsyncExtensions.InputField.cs" />
     <None Include="Assets\Plugins\UniTask\Runtime\External\TextMeshPro\UniTask.TextMeshPro.asmdef" />
     <Reference Include="UnityEngine">
       <HintPath>D:\Program Files\Unity\Hub\Editor\6000.0.43f1\Editor\Data\Managed\UnityEngine\UnityEngine.dll</HintPath>
