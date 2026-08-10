@@ -21,6 +21,8 @@
 - HybridCLR 客户端热更新/IL2CPP 元数据补充流程。
 - Unity.Mathematics，供双端共享逻辑使用一致的数据类型。
 - UniTask 与 NPBehave 第三方源码/插件。当前 ET 主逻辑仍主要使用 `ETTask`，NPBehave 也主要以独立插件存在；不要在没有明确边界设计时把它们直接替换进 ET 核心调度。
+- YooAsset `3.0.5` 源码与 Unity Scriptable Build Pipeline `2.1.5`。当前仅完成依赖导入，ET 的运行时资源入口仍是既有 `ResourcesComponent`/AssetBundle 体系。
+- FairyGUI Unity Runtime、Unity Editor 支持源码，以及 `Art/FairyGUI/` 下的设计工程。当前尚未接入 ET 的 UI 生命周期，既有 Demo UI 仍使用 UGUI。
 
 项目的核心目标是：开发时可把所有服务 Scene 放进一个进程便于调试，发布时只修改启动配置即可拆成多个进程；客户端、机器人与服务端尽量共享不依赖 UnityEngine 的模型和逻辑。
 
@@ -38,6 +40,9 @@
 | `Unity/Assets/Scripts/Codes/Model/Generate/` | Excel/Proto 生成的 Client、Server、ClientServer 代码 | 生成物，禁止把手工修改当作长期修复 |
 | `Unity/Assets/Scripts/Empty/` | 生成 Unity 工程/程序集所需的占位脚本 | 注释已明确：不要删除或修改 |
 | `Unity/Assets/Scripts/Editor/` | 构建、代码模式、服务器启动、配置/协议生成、导航导出等编辑器工具 | 仅 Editor 程序集 |
+| `Unity/Assets/YooAsset/` | 内嵌的 YooAsset 3.0.5 Runtime、Editor 与 Samples 源码 | 第三方代码；业务适配应放 ET View 层，不直接魔改依赖 |
+| `Unity/Assets/Scripts/ThirdParty/FairyGUI/` | FairyGUI Unity Runtime、着色器、资源与 Editor 扩展 | 第三方代码；当前没有 ET UI 适配层 |
+| `Art/FairyGUI/` | FairyGUI 编辑器设计工程与 UI 源文件 | 当前只有基础 `Package1/Component1`，不是 Unity 运行时产物 |
 | `Unity/Assets/Config/Excel/` | 配置表源文件 | 修改配置的首选源头 |
 | `Unity/Assets/Config/Proto/` | 网络协议源文件；文件名携带端类型与起始 opcode | 修改协议的首选源头 |
 | `Unity/Assets/Bundles/` | 客户端配置、代码和资源包输入/产物 | 多数内容由工具生成或打包，不手改 DLL/bytes |
@@ -73,6 +78,8 @@ ThirdParty / Mathematics
 
 实际 `.asmdef` 会因装载需要有少量附加引用，但业务设计仍应遵守：底层不知道上层；数据层不知道具体业务流程；共享逻辑不依赖 UnityEngine；Server 不引用 `ET.Client`。
 
+YooAsset、FairyGUI 与 Scriptable Build Pipeline 都属于 Unity 客户端侧基础设施，不进入 .NET Server 的共享依赖链。若后续正式接入，应由 `ModelView/HotfixView` 中的 ET 适配组件引用其程序集，不要让 `Core/Model/Hotfix Share` 直接依赖这些 Unity 专属库。
+
 ### 4.2 Model 与 Hotfix
 
 - `Model` 保存 Entity、组件数据、消息契约、配置类型、枚举和生命周期接口。
@@ -102,6 +109,14 @@ ThirdParty / Mathematics
 - `ClientServer`：编辑器内同时装载客户端和服务端，便于 All-in-One 调试。
 - 未定义 `ENABLE_CODES` 时，`ET/Build Tool` 将选定目录编译成 `Model.dll` 和 `Hotfix.dll`，Unity 再动态加载。
 - 定义 `ENABLE_CODES` 时，`*.Codes.asmdef` 直接编译源码，便于 Editor 引用和调试；此模式强制要求 `ClientServer`，不需要也不能执行 `BuildModelAndHotfix`，正式打包前必须移除该宏。
+
+### 4.5 新引入的资源与 UI 基础设施状态
+
+- YooAsset 以源码形式内嵌在 `Assets/YooAsset`，其 Editor 程序集引用 Scriptable Build Pipeline；`Packages/manifest.json` 将 SBP 固定为 `2.1.5`。
+- 当前没有业务代码调用 `YooAssets`/`ResourcePackage`，也没有 Samples 之外的项目级 `BundleCollectorSetting.asset`。现有代码加载 DLL、配置、场景和 GameObject 时仍走 ET 原有 AssetBundle 路径。
+- FairyGUI Runtime 与 Unity Editor 扩展已形成独立 `FairyGUI`、`FairyGUI-Editor` 程序集，并依赖 TextMeshPro；当前 ET 的 ModelView/HotfixView asmdef 尚未显式接入 FairyGUI。
+- `Art/FairyGUI/FGUIProject.fairy` 是 UI 设计源工程，目前只包含一个空白基础组件；仓库尚无对应的业务导出包、生成绑定代码或 ET UIEvent 适配。
+- 因此在明确迁移方案前，以现有 `ResourcesComponent` + UGUI UIComponent 为运行时事实。新增功能不要同时维护两套隐式资源/UI 生命周期，也不要把“已导入依赖”描述为“已完成框架替换”。
 
 ## 5. 启动与运行链
 
@@ -185,7 +200,9 @@ ThirdParty / Mathematics
 | Recast | Share Recast 模块、`Config/Recast`, `Tools/RecastNavExportor` | 双端/服务端导航数据与寻路 |
 | DB/HTTP/Router | Server 对应 Module | Mongo 访问、HTTP 处理、软路由与节点管理 |
 | RobotCase/Benchmark | Server Demo 与 Module | 端到端用例、机器人压测和网络基准 |
-| Resource/UI/View | `ModelView/Client`, `HotfixView/Client` | AssetBundle、GameObject、UI 与表现同步 |
+| Resource/UI/View | `ModelView/Client`, `HotfixView/Client` | 当前运行链：AssetBundle、UGUI、GameObject 与表现同步 |
+| YooAsset/SBP | `Unity/Assets/YooAsset`, `Unity/Packages/manifest.json` | 已导入的资源构建/运行基础，尚未接管 ET ResourcesComponent |
+| FairyGUI | `Art/FairyGUI`, `Scripts/ThirdParty/FairyGUI` | 已导入的 UI 设计与运行基础，尚未接入 ET UIComponent/UIEvent |
 | Config | `Core/Module/Config`, `ConfigLoader`, 生成 Config 类 | 按端和 StartConfig 加载 protobuf bytes |
 
 ## 8. 强制编码规则与常用模式
@@ -240,6 +257,15 @@ ThirdParty / Mathematics
 
 修改 StartConfig 后要重新导出；仅编辑 `Config/Json` 不会自动改变实际 bytes。
 
+### 9.4 YooAsset 与 FairyGUI 资产边界
+
+- `Assets/YooAsset` 和 `Scripts/ThirdParty/FairyGUI` 是第三方源码镜像。除非任务明确要求维护依赖本身，不在其中编写 ET 业务逻辑或做无关格式化。
+- `Assets/YooAsset/Samples~` 只用于参考，不代表项目已经采用其 Space Shooter、补丁器、文件系统或 UniTask 示例架构。
+- FairyGUI 的可编辑源放 `Art/FairyGUI`；Unity 可运行导出物的目录、包名、加载方式和绑定代码位置尚未形成项目约定。接入任务必须先明确这些约定，不能把设计 XML 当作运行时资源直接加载。
+- 正式迁移到 YooAsset 时，需要同时设计 package 初始化/更新、构建收集配置、资源句柄释放、代码与配置包加载、场景加载，以及对现有 Build Tool/HybridCLR 流程的替换或桥接。
+- 正式迁移到 FairyGUI 时，需要在 ModelView/HotfixView 建立 Entity/System 与 FairyGUI 对象的生命周期桥接，并明确它由旧 UIComponent 统一管理还是替换旧实现；UI 关闭时必须释放包、对象和资源句柄。
+- 任何迁移都应分阶段完成并提供兼容边界。在适配层完成并经过场景验证前，不删除旧 Resources/UI 实现。
+
 ## 10. 构建、运行与验证
 
 ### 10.1 环境
@@ -262,6 +288,14 @@ dotnet build ET.sln
 ```powershell
 dotnet build DotNet/DotNet.sln
 ```
+
+涉及 YooAsset、FairyGUI 等 Unity asmdef 时，可做快速静态构建：
+
+```powershell
+dotnet build Unity/Unity.sln
+```
+
+根 `ET.sln` 当前不包含 YooAsset/FairyGUI 项目，`Unity/Unity.sln` 才包含这些程序集。Unity 解决方案和 csproj 均由 Unity 生成，此命令只能作为静态检查，不能替代 Unity Editor 导入、Console 编译和目标平台运行验证。
 
 应优先构建整个相关解决方案，因为 Model/Hotfix、Analyzer、Tool 和 App 存在生成/链接依赖。不要只看到单个项目编译成功就认为双端边界正确。
 
@@ -293,6 +327,8 @@ dotnet App.dll --Process=1 --StartConfig=StartConfig/Localhost --Console=1
 4. 场景/资源/UI：运行 Init 场景完成目标流程，检查 Unity Console 与服务端 `Logs/`。
 5. 网络/Actor/Scene 拓扑：优先使用 RobotCase 做端到端验证；性能相关使用 Benchmark 配置，不能拿一次本地运行替代正确性检查。
 6. HybridCLR 打包：按 `Book/1.1运行指南.md` 的双次打包与 AOT DLL 复制流程，并以当前 HybridCLR 菜单/API 为准。
+7. YooAsset/SBP：至少验证 Unity 导入、Collector/Build Pipeline 配置、目标平台资源构建和运行时初始化；只通过 .NET 解决方案构建不算完成。
+8. FairyGUI：验证设计工程导出、Unity 包导入、程序集引用、创建/关闭 UI 和资源释放；若接入 YooAsset，还要覆盖两者的异步加载与卸载组合。
 
 ## 11. AI 执行任务时的工作流程
 
@@ -315,6 +351,8 @@ dotnet App.dll --Process=1 --StartConfig=StartConfig/Localhost --Console=1
 - 不要写死 Scene 与 Process 的部署关系；使用 StartConfig 和 SceneType。
 - 不要手改 Generate、bytes、动态 DLL、Unity 自动 csproj 来“修复”源头问题。
 - 不要同时混用 `ENABLE_CODES` 和动态 DLL 构建流程。
+- 不要因为 YooAsset/FairyGUI 源码已存在就绕过 ET 的 Entity/System 与 View 分层直接在业务代码中全局调用；当前两项依赖均处于待接入状态。
+- 不要把 YooAsset Samples 或 `Art/FairyGUI` 的设计文件当成项目运行时配置/产物提交到错误目录。
 - 不要假设 README 中列出的集成库已经替代 ET 自身的任务、AI 或网络抽象；先搜索当前业务用法。
 - 不要提交或删除用户已有的本地改动；开始和结束都检查 `git status`。
 
